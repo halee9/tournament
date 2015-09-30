@@ -5,5 +5,17 @@
 --
 -- You can write comments in this file by starting them with two dashes, like
 -- these lines here.
+DROP TABLE matches;
+DROP TABLE players;
 
+CREATE TABLE players (
+    name TEXT,
+    id SERIAL PRIMARY KEY
+);
 
+CREATE TABLE matches (
+    player1 INT REFERENCES players(id),
+    player2 INT REFERENCES players(id),
+    winner INT REFERENCES players(id),
+    PRIMARY KEY(player1, player2)
+);
