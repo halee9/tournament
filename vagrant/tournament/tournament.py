@@ -84,7 +84,9 @@ def reportMatch(winner, loser):
     """
     conn = connect()
     c = conn.cursor()
+    # add 1 wins count, add 1 to matches count, if winner
     c.execute("UPDATE players SET wins = wins + 1, matches = matches + 1 WHERE id = %d;" % (winner))
+    # just add 1 to matches count, if loser
     c.execute("UPDATE players SET matches = matches + 1 WHERE id = %d;" % (loser))
     conn.commit()
     conn.close()
@@ -107,6 +109,8 @@ def swissPairings():
     """
     standings = playerStandings()
     #pairs = zip(standings[::2], standings[1::2])
+
+    # if ranking number is even, make a pair tuple
     pairs = []
     i = 1
     for player in standings:
