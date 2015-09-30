@@ -9,13 +9,17 @@ DROP TABLE matches;
 DROP TABLE players;
 
 CREATE TABLE players (
-    name TEXT,
-    id SERIAL PRIMARY KEY
+    id SERIAL,
+    name TEXT NOT NULL,
+    wins INT DEFAULT 0,
+    matches INT DEFAULT 0,
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE matches (
-    player1 INT REFERENCES players(id),
-    player2 INT REFERENCES players(id),
+    id SERIAL,
     winner INT REFERENCES players(id),
-    PRIMARY KEY(player1, player2)
+    loser INT REFERENCES players(id),
+    PRIMARY KEY (id)
 );
+

@@ -48,7 +48,7 @@ def registerPlayer(name):
     """
     conn = connect()
     c = conn.cursor()
-    c.execute("INSERT INTO players (name) VALUES (%s)", (name,))
+    c.execute("INSERT INTO players (name) VALUES (%s);", (name,))
     conn.commit()
     conn.close()
 
@@ -66,6 +66,13 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
+    conn = connect()
+    c = conn.cursor()
+    c.execute("select id, name, wins, matches from players order by wins desc")
+    standings = [(row[0], row[1], row[2],row[3])
+             for row in c.fetchall()]
+    conn.close()
+    return standings
 
 
 def reportMatch(winner, loser):
@@ -75,6 +82,12 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
+    conn = connect()
+    c = conn.cursor()
+    c.execute("UPDATE players SET wins = wins + 1, matches = matches + 1 WHERE id = %d;" % (winner))
+    c.execute("UPDATE players SET matches = matches + 1 WHERE id = %d;" % (loser))
+    conn.commit()
+    conn.close()
 
 
 def swissPairings():
@@ -92,5 +105,16 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
-
+    standings = playerStandings()
+    #pairs = zip(standings[::2], standings[1::2])
+    pairs = []
+    i = 1
+    for player in standings:
+        if i%2 == 0:
+            pairs.append((temp_id, temp_name, player[0], player[1]))
+        else:
+            temp_id = player[0]
+            temp_name = player[1]
+        i = i + 1
+    return pairs
 
