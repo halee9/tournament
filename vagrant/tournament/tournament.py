@@ -15,7 +15,7 @@ def deleteMatches():
     """Remove all the match records from the database."""
     conn = connect()
     c = conn.cursor()
-    c.execute("delete from matches")
+    c.execute("DELETE FROM matches")
     conn.commit()
     conn.close()
 
@@ -23,7 +23,7 @@ def deletePlayers():
     """Remove all the player records from the database."""
     conn = connect()
     c = conn.cursor()
-    c.execute("delete from players")
+    c.execute("DELETE FROM players")
     conn.commit()
     conn.close()
 
@@ -32,7 +32,7 @@ def countPlayers():
     """Returns the number of players currently registered."""
     conn = connect()
     c = conn.cursor()
-    c.execute("select count(*) from players")
+    c.execute("SELECT count(*) FROM players")
     row = c.fetchone()
     conn.close()
     return row[0]
@@ -68,29 +68,63 @@ def playerStandings():
     """
     conn = connect()
     c = conn.cursor()
-    c.execute("select id, name, wins, matches from players order by wins desc")
+    c.execute("SELECT id, name, wins, matches FROM records ORDER BY wins DESC, id ASC")
     standings = [(row[0], row[1], row[2],row[3])
              for row in c.fetchall()]
     conn.close()
     return standings
 
 
-def reportMatch(winner, loser):
+def reportMatch(winner, loser, draw):
     """Records the outcome of a single match between two players.
 
     Args:
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
+      draw: boolean true if the match was tied, false if not defined
     """
     conn = connect()
     c = conn.cursor()
-    # add 1 wins count, add 1 to matches count, if winner
-    c.execute("UPDATE players SET wins = wins + 1, matches = matches + 1 WHERE id = %d;" % (winner))
-    # just add 1 to matches count, if loser
-    c.execute("UPDATE players SET matches = matches + 1 WHERE id = %d;" % (loser))
+    # insert a match row into matches table
+    c.execute("INSERT INTO matches (winner, loser, draw) VALUES (%s, %s, %s)", (winner, loser, draw))
     conn.commit()
     conn.close()
 
+def isValidMatch(firstPlayer, secondPlayer):
+    """ Check if two players matched before
+    Arg:
+        firstPlayer: the id number of the firstPlayer
+        secondPlayer: the id number od the secondPlayer
+    Return:
+        True or False
+    """
+    conn = connect()
+    c = conn.cursor()
+    c.execute("SELECT id FROM matches WHERE (winner = %s AND loser = %s) OR (loser = %s AND winner = %s)",
+              (firstPlayer, secondPlayer, firstPlayer, secondPlayer))
+    rows = c.fetchall()
+    if len(rows) > 0:
+        return False
+    else:
+        return True
+
+def findOpponent(standings, opponentIndex):
+    """ Find opponent player with recursive
+    Arg:
+        standings: the list of the possible candidates
+        opponentIndex: index of list for opponent player
+    Return:
+        index of opponent
+    """
+    # if there is no possible candidate, return original player index
+    if opponentIndex >= len(standings):
+        return 1
+    # if valid match, return the index
+    elif isValidMatch(standings[0][0], standings[opponentIndex][0]):
+        return opponentIndex
+    # if not valid match, add 1 to opponent index and recursion
+    else:
+        return findOpponent(standings, opponentIndex+1)
 
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.
@@ -108,17 +142,21 @@ def swissPairings():
         name2: the second player's name
     """
     standings = playerStandings()
-    #pairs = zip(standings[::2], standings[1::2])
+    #validatePrePairs(standings)
 
     # if ranking number is even, make a pair tuple
     pairs = []
-    i = 1
-    for player in standings:
-        if i%2 == 0:
-            pairs.append((temp_id, temp_name, player[0], player[1]))
-        else:
-            temp_id = player[0]
-            temp_name = player[1]
-        i = i + 1
+
+    # create valid pairs with pops until list 'standing' will be empty
+    while len(standings) > 1:
+        # get opponent index
+        opponent = findOpponent(standings, 1)
+        # pop and remove first element from list 'standings'
+        firstPlayer = standings.pop(0)
+        # pop and remove opponent index element from list 'standings'
+        secondPlayer = standings.pop(opponent-1)
+        # create pair
+        pairs.append((firstPlayer[0], firstPlayer[1], secondPlayer[0], secondPlayer[1]))
+
     return pairs
 
